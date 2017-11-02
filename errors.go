@@ -11,6 +11,7 @@ const ERROR_NOT_FOUND = "NotFound"
 const ERROR_INTERNAL = "ServerInternalError"
 const ERROR_INVALID_PARAMS = "InvalidParams"
 const ERROR_INTERNAL_EXCEPTION = "InternalException"
+const ERROR_ALREADY_EXISTS = "AlreadyExists"
 
 type ParamError struct {
 	Field   string `json:"field,omitempty"`
@@ -43,6 +44,10 @@ func Unauthorized(message string) *Error {
 
 func NotFound(message string) *Error {
 	return &Error{Status: http.StatusNotFound, Code: ERROR_NOT_FOUND, Message: message}
+}
+
+func AlreadyExists(message string) *Error {
+	return &Error{Status: http.StatusBadRequest, Code: ERROR_ALREADY_EXISTS, Message: message}
 }
 
 func InternalServerError(message string) *Error {
