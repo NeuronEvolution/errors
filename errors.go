@@ -2,6 +2,7 @@ package errors
 
 import (
 	"fmt"
+	"gopkg.in/gomail.v2"
 	"net/http"
 )
 
@@ -32,6 +33,13 @@ func (e *Error) Error() string {
 
 func InvalidParams(params ...*ParamError) *Error {
 	return &Error{Status: http.StatusBadRequest, Code: ERROR_INVALID_PARAMS, Errors: params}
+}
+
+func InvalidParam(field string, message string) *Error {
+	return &Error{
+		Status: http.StatusBadRequest,
+		Code:   ERROR_INVALID_PARAMS,
+		Errors: []*ParamError{{Field: field, Code: ERROR_INVALID_PARAMS, Message: message}}}
 }
 
 func BadRequest(code string, message string) *Error {
