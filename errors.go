@@ -2,7 +2,6 @@ package errors
 
 import (
 	"fmt"
-	"gopkg.in/gomail.v2"
 	"net/http"
 )
 
