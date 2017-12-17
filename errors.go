@@ -1,7 +1,9 @@
 package errors
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/go-openapi/runtime"
 	"net/http"
 )
 
@@ -26,8 +28,46 @@ type Error struct {
 	Errors  []*ParamError `json:"errors,omitempty"`
 }
 
+func (e *Error) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+	rw.WriteHeader(e.Status)
+
+	enc := json.NewEncoder(rw)
+	err := enc.Encode(e)
+	if err != nil {
+		panic(err) // let the recovery middleware deal with this
+	}
+}
+
 func (e *Error) Error() string {
-	return fmt.Sprint(e.Status, e.Code, e.Message, e.Errors)
+	s, _ := json.Marshal(e)
+	return string(s)
+}
+
+func Unknown(message string) *Error {
+	return &Error{Status: http.StatusInternalServerError, Code: ERROR_UNKNOWN, Message: message}
+}
+
+func Wrap(err interface{}) *Error {
+	if err == nil {
+		panic("err is nil")
+	}
+
+	switch err.(type) {
+	case *Error:
+		return err.(*Error)
+	case error:
+		return &Error{
+			Status:  http.StatusInternalServerError,
+			Code:    ERROR_UNKNOWN,
+			Message: err.(error).Error(),
+		}
+	default:
+		return &Error{
+			Status:  http.StatusInternalServerError,
+			Code:    ERROR_UNKNOWN,
+			Message: fmt.Sprint(err),
+		}
+	}
 }
 
 func InvalidParams(params ...*ParamError) *Error {
