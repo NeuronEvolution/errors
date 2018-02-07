@@ -69,14 +69,15 @@ func Unknown(message string) *Error {
 }
 
 func InvalidParams(params ...*ParamError) *Error {
-	return &Error{Status: http.StatusBadRequest, Code: ErrInvalidParams, Errors: params}
+	return &Error{Status: http.StatusBadRequest, Code: ErrInvalidParams, Message: "参数错误", Errors: params}
 }
 
 func InvalidParam(field string, message string) *Error {
 	return &Error{
-		Status: http.StatusBadRequest,
-		Code:   ErrInvalidParams,
-		Errors: []*ParamError{{Field: field, Code: ErrInvalidParams, Message: message}}}
+		Status:  http.StatusBadRequest,
+		Code:    ErrInvalidParams,
+		Message: message,
+		Errors:  []*ParamError{{Field: field, Code: ErrInvalidParams, Message: message}}}
 }
 
 func BadRequest(code string, message string) *Error {
