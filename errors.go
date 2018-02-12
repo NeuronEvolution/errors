@@ -3,6 +3,8 @@ package errors
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
+	openapiErrors "github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	"net/http"
 )
@@ -13,17 +15,10 @@ const ErrNotFound = "NotFound"
 const ErrInvalidParams = "InvalidParams"
 const ErrAlreadyExists = "AlreadyExists"
 
-type ParamError struct {
-	Field   string `json:"field,omitempty"`
+type Error struct {
+	Status  int    `json:"status,omitempty"`
 	Code    string `json:"code,omitempty"`
 	Message string `json:"message,omitempty"`
-}
-
-type Error struct {
-	Status  int           `json:"status,omitempty"`
-	Code    string        `json:"code,omitempty"`
-	Message string        `json:"message,omitempty"`
-	Errors  []*ParamError `json:"errors,omitempty"`
 }
 
 func (e *Error) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
@@ -41,43 +36,12 @@ func (e *Error) Error() string {
 	return string(s)
 }
 
-func Wrap(err interface{}) *Error {
-	if err == nil {
-		panic("err is nil")
-	}
-
-	switch err.(type) {
-	case *Error:
-		return err.(*Error)
-	case error:
-		return &Error{
-			Status:  http.StatusInternalServerError,
-			Code:    ErrUnknown,
-			Message: err.(error).Error(),
-		}
-	default:
-		return &Error{
-			Status:  http.StatusInternalServerError,
-			Code:    ErrUnknown,
-			Message: fmt.Sprint(err),
-		}
-	}
-}
-
 func Unknown(message string) *Error {
 	return &Error{Status: http.StatusInternalServerError, Code: ErrUnknown, Message: message}
 }
 
-func InvalidParams(params ...*ParamError) *Error {
-	return &Error{Status: http.StatusBadRequest, Code: ErrInvalidParams, Message: "参数错误", Errors: params}
-}
-
-func InvalidParam(field string, message string) *Error {
-	return &Error{
-		Status:  http.StatusBadRequest,
-		Code:    ErrInvalidParams,
-		Message: message,
-		Errors:  []*ParamError{{Field: field, Code: ErrInvalidParams, Message: message}}}
+func InvalidParam(message string) *Error {
+	return &Error{Status: http.StatusBadRequest, Code: ErrInvalidParams, Message: message}
 }
 
 func BadRequest(code string, message string) *Error {
@@ -94,4 +58,30 @@ func NotFound(message string) *Error {
 
 func AlreadyExists(message string) *Error {
 	return &Error{Status: http.StatusBadRequest, Code: ErrAlreadyExists, Message: message}
+}
+
+func Wrap(err interface{}) *Error {
+	if err == nil {
+		panic("err is nil")
+	}
+
+	switch err.(type) {
+	case *Error:
+		return err.(*Error)
+	case *openapiErrors.MethodNotAllowedError:
+		return &Error{Status: http.StatusMethodNotAllowed, Code: "MethodNotAllowed", Message: "MethodNotAllowed"}
+	case *jwt.ValidationError:
+		return Unauthorized(err.(*jwt.ValidationError).Error())
+	case openapiErrors.Error:
+		if err == nil {
+			return Unknown("e==nil")
+		}
+
+		e := err.(openapiErrors.Error)
+		return &Error{Status: int(e.Code()), Code: ErrUnknown, Message: e.Error()}
+	case error:
+		return Unknown(err.(error).Error())
+	default:
+		return Unknown(fmt.Sprint(err))
+	}
 }
